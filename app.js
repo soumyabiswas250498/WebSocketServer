@@ -55,10 +55,10 @@ io.on('connection',  socket => {
     }
   })
   
-  socket.on('c2s-message', ({ content, to }) => {
+  socket.on('c2s-message', ({ content, to, from }) => {
     console.log(content, to);
     if(to){
-      socket.to(to).emit('s2c-message', content);
+      socket.to(to).emit('s2c-message', {message: content, from: from });
     }
     
   });
