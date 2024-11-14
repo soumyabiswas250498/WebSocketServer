@@ -33,7 +33,7 @@ app.use(
 
 app.use(express.json());
 
-app.use("/api/v1", authRouter);
+app.use("/api/v1/auth", authRouter);
 
 // Routes
 app.get("/", (req, res) => res.send("Hello World"));
