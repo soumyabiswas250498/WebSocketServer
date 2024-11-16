@@ -11,7 +11,11 @@ const regSchema = z.object({
 
 const loginSchema = z.object({
   email: z.string().email(),
-  password: z.string()
+  password: z.string(),
+  rfTime: z
+    .string()
+    .regex(/^\d+$/, "rfTime must contain only digits")
+    .optional(),
 });
 
 export { regSchema, loginSchema };

@@ -3,11 +3,12 @@ import {
   addUser,
   checkUserEmail,
   checkUserName,
-  validateUser
+  validateUser,
 } from "../services/userServices.js";
 import asyncHandler from "express-async-handler";
 import jwt from "jsonwebtoken";
 import constants from "../utils/config/constants.js";
+import { ApiError } from "../utils/errors.js";
 
 const registerUserController = asyncHandler(async (req, res) => {
   const { email, password, userName } = req.body;
@@ -27,19 +28,65 @@ const registerUserController = asyncHandler(async (req, res) => {
 });
 
 const loginUserController = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, rfTime } = req.body;
   const data = await validateUser(email, password);
-  // console.log(data, '***t3')
-  const token = jwt.sign(
+  // console.log(data, "***");
+  const accessToken = jwt.sign(
     {
       userId: data._id,
-      email: data.email
+      email: data.email,
+      role: data.role,
     },
-    constants.jwtSecrete,
+    constants.jwtSecreteAT,
     { expiresIn: constants.jwtExpiry }
   );
+  const rfTimeNum = parseInt(rfTime, 10);
+  const refreshToken = rfTimeNum
+    ? jwt.sign(
+        {
+          userId: data._id,
+          email: data.email,
+          role: data.role,
+        },
+        constants.jwtSecreteRT,
+        { expiresIn: rfTimeNum }
+      )
+    : "";
 
-  return successResponse(res, { ...data, token }, "Login successfully");
-})
+  return successResponse(
+    res,
+    { ...data, accessToken, refreshToken },
+    "Login successfully"
+  );
+});
 
-export { registerUserController, loginUserController };
+const rfTokenController = asyncHandler(async (req, res) => {
+  const { rfToken } = req.body;
+  try {
+    const decoded = jwt.verify(rfToken, constants.jwtSecreteRT);
+    const { email } = decoded;
+    if (email) {
+      const userData = await checkUserEmail(email);
+      if (userData) {
+        const accessToken = jwt.sign(
+          {
+            userId: userData._id,
+            email: userData.email,
+            role: userData.role,
+          },
+          constants.jwtSecreteAT,
+          { expiresIn: constants.jwtExpiry }
+        );
+        return successResponse(res, { accessToken }, "Accesstoken renewed");
+      } else {
+        throw new ApiError(401, "User not found");
+      }
+    } else {
+      throw new ApiError(401, "User not found");
+    }
+  } catch (error) {
+    throw new ApiError(401, "Unauthorized Request", error);
+  }
+});
+
+export { registerUserController, loginUserController, rfTokenController };

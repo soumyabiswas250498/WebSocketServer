@@ -7,6 +7,7 @@ import constants from "./src/utils/config/constants.js";
 import { connectDB } from "./src/utils/config/db.js";
 import authRouter from "./src/routes/authRoutes.js";
 import { errorHandler } from "./src/middlewares/errorHandler.js";
+import userRouter from "./src/routes/userRoutes.js";
 
 const port = constants.port;
 const origin = constants.origin;
@@ -34,6 +35,7 @@ app.use(
 app.use(express.json());
 
 app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/user", userRouter);
 
 // Routes
 app.get("/", (req, res) => res.send("Hello World"));

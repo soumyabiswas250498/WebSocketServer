@@ -1,25 +1,41 @@
-import mongoose from "mongoose";
+import { mongoose, Types } from "mongoose";
 import bcrypt from "bcryptjs";
 
 const Schema = mongoose.Schema;
 
-const UserSchema = new Schema({
-  email: {
-    type: String,
-    requred: true,
-    unique: true,
+const UserSchema = new Schema(
+  {
+    email: {
+      type: String,
+      requred: true,
+      unique: true,
+      index: true,
+    },
+    userName: {
+      type: String,
+      requred: true,
+      unique: true,
+      index: true,
+    },
+    password: {
+      type: String,
+      requred: true,
+    },
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+      required: true,
+    },
+    deviceIds: [
+      {
+        type: Types.ObjectId,
+        ref: "device",
+      },
+    ],
   },
-  userName: {
-    type: String,
-    requred: true,
-    unique: true,
-  },
-  password: {
-    type: String,
-    requred: true,
-    // select: false
-  },
-});
+  { timestamps: true }
+);
 
 UserSchema.pre("save", function (next) {
   const user = this;
@@ -54,7 +70,6 @@ UserSchema.methods.comparePassword = function (password) {
     });
   });
 };
-
 
 // Do not return password
 

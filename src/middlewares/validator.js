@@ -8,15 +8,14 @@ export function validateData(schema) {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        const errorMessages = error.errors.map(
-          (issue) => {
-            if (issue.message === "Required") {
-              return `${issue.path.join(".")} is ${issue.message}`.toUpperCase()
-            } else {
-              return issue.message.toUpperCase()
-            }
+        const errorMessages = error.errors.map((issue) => {
+          console.log(issue, "***");
+          if (issue.code === "invalid_type") {
+            return `${issue.path.join(".")} is ${issue.message}`.toUpperCase();
+          } else {
+            return issue.message.toUpperCase();
           }
-        );
+        });
 
         throw new ApiError(400, errorMessages[0]);
       } else {
