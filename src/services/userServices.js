@@ -20,7 +20,7 @@ const checkUserName = asyncHandler(async (userName) => {
 });
 
 const getUserById = asyncHandler(async (userId) => {
-  const data = await UserModel.findById(userId);
+  const data = await UserModel.findById(userId).populate('deviceIds').exec();
   return data ? data.toObject() : null;
 });
 

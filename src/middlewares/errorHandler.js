@@ -2,7 +2,7 @@
 
 // eslint-disable-next-line no-unused-vars
 export function errorHandler(err, req, res, next) {
-  console.error(err, "***error3");
+  console.error(err, "***error");
   const statusCode = err.statusCode || 500;
   const errorMessage = err.message || "Something went wrong, Try again!";
 

@@ -15,11 +15,11 @@ const registerUserController = asyncHandler(async (req, res) => {
   const uniqueEmailCheck = await checkUserEmail(email);
 
   if (uniqueEmailCheck) {
-    throw new Error("Email already exists");
+    throw new ApiError(409, "Email already exists");
   } else {
     const uniqueUserNameCheck = await checkUserName(userName);
     if (uniqueUserNameCheck) {
-      throw new Error("Username already exists");
+      throw new ApiError(409, "Username already exists");
     } else {
       const data = await addUser(email, password, userName);
       return successResponse(res, data, "Registration successful");
@@ -30,6 +30,9 @@ const registerUserController = asyncHandler(async (req, res) => {
 const loginUserController = asyncHandler(async (req, res) => {
   const { email, password, rfTime } = req.body;
   const data = await validateUser(email, password);
+  if (!data) {
+    throw new ApiError(401, 'Wrong credentials')
+  }
   // console.log(data, "***");
   const accessToken = jwt.sign(
     {
@@ -43,14 +46,14 @@ const loginUserController = asyncHandler(async (req, res) => {
   const rfTimeNum = parseInt(rfTime, 10);
   const refreshToken = rfTimeNum
     ? jwt.sign(
-        {
-          userId: data._id,
-          email: data.email,
-          role: data.role,
-        },
-        constants.jwtSecreteRT,
-        { expiresIn: rfTimeNum }
-      )
+      {
+        userId: data._id,
+        email: data.email,
+        role: data.role,
+      },
+      constants.jwtSecreteRT,
+      { expiresIn: rfTimeNum }
+    )
     : "";
 
   return successResponse(
