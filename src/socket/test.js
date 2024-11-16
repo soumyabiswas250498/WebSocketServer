@@ -1,38 +1,69 @@
+import { jwtAuth } from "../middlewares/userAuthMiddleware.js";
+
 const handleSocketConnection = (io) => {
+  const deviceSocketMap = {};
+  const userDeviceMap = {};
 
+  io.use(async (socket, next) => {
+    try {
+      const { deviceid, authorization } = socket.handshake.headers;
+      const userData = await jwtAuth(authorization)
+      const userId = userData._id.toString();
+      const deviceIds = userData.deviceIds.map((item) => item._id.toString());
+      const isValidDevice = userId && deviceIds.includes(deviceid);
 
-//   io.use((socket, next) => {
-//     const usernameFrom = socket.handshake.auth.usernameFrom;
-//     console.log(usernameFrom, "***from");
-//     if (!usernameFrom) {
-//       return next(new Error("invalid username"));
-//     }
-//     socket.usernameFrom = usernameFrom;
-//     next();
-//   });
+      // console.log(userId, deviceIds, isValidDevice, '***u')
+
+      if (isValidDevice) {
+        deviceSocketMap[deviceid] = socket.id;
+        userDeviceMap[userId] = deviceIds;
+        // console.log(deviceSocketMap, userDeviceMap, '***');
+        socket.deviceId = deviceid;
+        socket.userId = userId;
+
+        next();
+      } else {
+        return next(new Error("Unauthorized Access"));
+      }
+    } catch (error) {
+      console.log(error)
+      return next(new Error("Unauthorized Access"));
+    }
+  });
+
 
 
   io.on("connection", (socket) => {
-    console.log("User connected");
-    console.log("Id", socket.id);
 
-    socket.on("getUserId", async (userName) => {
-      const sockets = await io.fetchSockets();
-      if (sockets.length > 0) {
-        const toData = sockets.filter((item) => {
-          return item.usernameFrom === userName;
-        });
-        console.log(toData[0]?.id, "***");
-        socket.emit("receiveUserId", toData[0]?.id || null);
-      }
-    });
+    const { deviceId, userId } = socket
 
-    socket.on("c2s-message", ({ content, to, from }) => {
-      console.log(content, to);
-      if (to) {
-        socket.to(to).emit("s2c-message", { message: content, from: from });
+    // console.log("User connected", socket.handshake.headers);
+    // console.log("Id", socket.id);
+    // console.log(deviceId, '***')
+    // console.log(socket, '***');
+
+
+    socket.on("c2s_message", ({ toDeviceId, message }) => {
+      // console.log(deviceId, toDeviceId, message, '***c2s');
+      const isReceiverAllowed = userDeviceMap[userId].includes(toDeviceId);
+
+      if (!isReceiverAllowed) {
+        console.log('Unauthorized Message')
+        return new Error("Unauthorized Access");
       }
-    });
+
+      const targetSocketId = deviceSocketMap[toDeviceId];
+      if (targetSocketId) {
+        io.to(targetSocketId).emit('s2c_message', { from: deviceId, message });
+      } else {
+        console.log('receiver is not online')
+      }
+
+    })
+
+
+
+
   });
 };
 

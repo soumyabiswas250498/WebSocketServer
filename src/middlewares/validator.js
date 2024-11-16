@@ -9,7 +9,6 @@ export function validateData(schema) {
     } catch (error) {
       if (error instanceof ZodError) {
         const errorMessages = error.errors.map((issue) => {
-          console.log(issue, "***");
           if (issue.code === "invalid_type") {
             return `${issue.path.join(".")} is ${issue.message}`.toUpperCase();
           } else {
