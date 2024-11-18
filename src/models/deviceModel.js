@@ -23,9 +23,22 @@ const DeviceSchema = new Schema(
       ref: "user",
       required: true,
     },
-    messages: {
-      type: String,
-    },
+    messages: [
+      {
+        msg: {
+          type: String,
+          required: true,
+        },
+        fromDeviceId: {
+          type: String,
+          required: true,
+        },
+        time: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     memoryUsage: {
       type: Number,
       default: 0,

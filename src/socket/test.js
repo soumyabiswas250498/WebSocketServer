@@ -1,4 +1,5 @@
 import { jwtAuth } from "../middlewares/userAuthMiddleware.js";
+import { saveOfflineMessage, removeOfflineMessage } from "../services/deviceServices.js";
 
 const handleSocketConnection = (io) => {
   const deviceSocketMap = {};
@@ -9,10 +10,15 @@ const handleSocketConnection = (io) => {
       const { deviceid, authorization } = socket.handshake.headers;
       const userData = await jwtAuth(authorization)
       const userId = userData._id.toString();
-      const deviceIds = userData.deviceIds.map((item) => item._id.toString());
+      let offlineMsg = null
+      const deviceIds = userData.deviceIds.map((item) => {
+        const deviceIdCurrent = item._id.toString();
+        if (deviceIdCurrent === deviceid) {
+          offlineMsg = item.messages
+        }
+        return deviceIdCurrent
+      });
       const isValidDevice = userId && deviceIds.includes(deviceid);
-
-      // console.log(userId, deviceIds, isValidDevice, '***u')
 
       if (isValidDevice) {
         deviceSocketMap[deviceid] = socket.id;
@@ -20,6 +26,7 @@ const handleSocketConnection = (io) => {
         // console.log(deviceSocketMap, userDeviceMap, '***');
         socket.deviceId = deviceid;
         socket.userId = userId;
+        socket.offlineMsg = offlineMsg;
 
         next();
       } else {
@@ -35,15 +42,21 @@ const handleSocketConnection = (io) => {
 
   io.on("connection", (socket) => {
 
-    const { deviceId, userId } = socket
+    const { deviceId, userId, offlineMsg } = socket
 
     // console.log("User connected", socket.handshake.headers);
     // console.log("Id", socket.id);
     // console.log(deviceId, '***')
     // console.log(socket, '***');
 
+    if (offlineMsg.length) {
+      const fromSocketId = deviceSocketMap[deviceId];
+      io.to(fromSocketId).emit('offlineMsg', offlineMsg);
+      removeOfflineMessage(deviceId);
+    }
 
-    socket.on("c2s_message", ({ toDeviceId, message }) => {
+
+    socket.on("c2s_message", async ({ toDeviceId, message }) => {
       // console.log(deviceId, toDeviceId, message, '***c2s');
       const isReceiverAllowed = userDeviceMap[userId].includes(toDeviceId);
 
@@ -56,14 +69,11 @@ const handleSocketConnection = (io) => {
       if (targetSocketId) {
         io.to(targetSocketId).emit('s2c_message', { from: deviceId, message });
       } else {
-        console.log('receiver is not online')
+        console.log('receiver is not online');
+        saveOfflineMessage(toDeviceId, message, deviceId)
       }
 
     })
-
-
-
-
   });
 };
 
