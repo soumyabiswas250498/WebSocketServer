@@ -29,11 +29,12 @@ const registerUserController = asyncHandler(async (req, res) => {
 
 const loginUserController = asyncHandler(async (req, res) => {
   const { email, password, rfTime } = req.body;
+  console.log(constants.jwtSecreteAT, constants.jwtExpiry, "***");
   const data = await validateUser(email, password);
   if (!data) {
     throw new ApiError(401, 'Wrong credentials')
   }
-  // console.log(data, "***");
+
   const accessToken = jwt.sign(
     {
       userId: data._id,
